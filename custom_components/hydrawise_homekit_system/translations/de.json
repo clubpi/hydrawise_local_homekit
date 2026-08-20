@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hydrawise HomeKit System",
+        "description": "Separate Test-Brücke: ein echtes HomeKit Irrigation System mit verknüpften Hydrawise-Zonen.",
+        "data": {
+          "source_entry": "Hydrawise Local Pro Controller",
+          "port": "HomeKit Port",
+          "pin": "HomeKit PIN"
+        }
+      }
+    },
+    "error": {
+      "invalid_pin": "PIN muss das Format 123-45-678 haben",
+      "source_missing": "Hydrawise Local Pro Eintrag wurde nicht gefunden"
+    },
+    "abort": {
+      "no_local_pro": "Hydrawise Local Pro ist nicht eingerichtet",
+      "already_configured": "Für diesen Controller existiert bereits eine HomeKit-System-Brücke"
+    }
+  }
+}

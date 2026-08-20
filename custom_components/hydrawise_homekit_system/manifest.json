@@ -1,0 +1,16 @@
+{
+  "domain": "hydrawise_homekit_system",
+  "name": "Hydrawise HomeKit System",
+  "version": "0.2.0",
+  "documentation": "https://github.com/clubpi/hydrawise_homekit_system",
+  "issue_tracker": "https://github.com/clubpi/hydrawise_homekit_system/issues",
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_push",
+  "integration_type": "hub",
+  "dependencies": [
+    "hydrawise_local_pro",
+    "homekit",
+    "zeroconf"
+  ]
+}
