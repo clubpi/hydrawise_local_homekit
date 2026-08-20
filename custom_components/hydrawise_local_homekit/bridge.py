@@ -56,13 +56,6 @@ class IrrigationSystemAccessory(Accessory):
         self.char_system_fault = system.configure_char("StatusFault", value=0)
         self.set_primary_service(system)
         self.system_service = system
-        automatic = self.add_preload_service("Switch", unique_id="hydrawise-automatic")
-        self.char_automatic = automatic.configure_char(
-            "On",
-            value=bool(getattr(coordinator, "automatic_enabled", True)),
-            setter_callback=self._set_automatic,
-        )
-
         self.zone_services = {}
         self.zone_chars = {}
 
@@ -190,9 +183,6 @@ class IrrigationSystemAccessory(Accessory):
         self.char_system_in_use.set_value(1 if any_in_use else 0)
         self.char_system_program.set_value(1 if any_requested else 0)
         self.char_system_remaining.set_value(max(0, total_remaining))
-        self.char_automatic.set_value(
-            bool(getattr(self.coordinator, "automatic_enabled", True))
-        )
 
     def _set_system_active(self, value: int | bool) -> None:
         # System OFF = stop everything and clear queue.
@@ -305,6 +295,50 @@ class IrrigationSystemAccessory(Accessory):
         await super().stop()
 
 
+class AutomationAccessory(Accessory):
+    """Separate HomeKit tile for the irrigation automation lock."""
+
+    def __init__(self, driver, hass: HomeAssistant, coordinator):
+        super().__init__(driver, "Bewässerungsautomatik")
+        self.hass = hass
+        self.coordinator = coordinator
+        self.set_info_service(
+            manufacturer="clubpi",
+            model="Hydrawise Local HomeKit",
+            serial_number=f"{coordinator.api.host}-automation",
+        )
+        switch = self.add_preload_service("Switch", unique_id="hydrawise-automatic")
+        self.char_automatic = switch.configure_char(
+            "On",
+            value=bool(getattr(coordinator, "automatic_enabled", True)),
+            setter_callback=self._set_automatic,
+        )
+        self._remove_listener = coordinator.async_add_listener(self._sync)
+        self._sync()
+
+    def _set_automatic(self, value: int | bool) -> None:
+        enabled = bool(value)
+        self.char_automatic.set_value(enabled)
+        if hasattr(self.coordinator, "async_set_automatic"):
+            self.hass.loop.call_soon_threadsafe(
+                lambda: self.hass.async_create_task(
+                    self.coordinator.async_set_automatic(enabled)
+                )
+            )
+
+    @callback
+    def _sync(self) -> None:
+        self.char_automatic.set_value(
+            bool(getattr(self.coordinator, "automatic_enabled", True))
+        )
+
+    async def stop(self) -> None:
+        if self._remove_listener:
+            self._remove_listener()
+            self._remove_listener = None
+        await super().stop()
+
+
 class HydrawiseHomeKitSystemBridge:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
@@ -348,6 +382,8 @@ class HydrawiseHomeKitSystemBridge:
         )
 
         await self.hass.async_add_executor_job(self.driver.add_accessory, accessory)
+        automation = AutomationAccessory(self.driver, self.hass, coordinator)
+        await self.hass.async_add_executor_job(self.driver.add_accessory, automation)
         await self.driver.async_start()
 
         _LOGGER.warning(
