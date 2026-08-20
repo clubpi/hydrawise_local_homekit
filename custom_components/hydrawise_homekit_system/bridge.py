@@ -59,7 +59,7 @@ class IrrigationSystemAccessory(Accessory):
         automatic = self.add_preload_service("Switch", unique_id="hydrawise-automatic")
         self.char_automatic = automatic.configure_char(
             "On",
-            value=bool(coordinator.automatic_enabled),
+            value=bool(getattr(coordinator, "automatic_enabled", True)),
             setter_callback=self._set_automatic,
         )
 
@@ -134,6 +134,9 @@ class IrrigationSystemAccessory(Accessory):
     def _set_automatic(self, value: int | bool) -> None:
         enabled = bool(value)
         self.char_automatic.set_value(enabled)
+        if not hasattr(self.coordinator, "async_set_automatic"):
+            _LOGGER.warning("Hydrawise Local Pro ohne Automatik-Schalter geladen")
+            return
         self.hass.loop.call_soon_threadsafe(
             lambda: self.hass.async_create_task(
                 self.coordinator.async_set_automatic(enabled)
@@ -187,7 +190,9 @@ class IrrigationSystemAccessory(Accessory):
         self.char_system_in_use.set_value(1 if any_in_use else 0)
         self.char_system_program.set_value(1 if any_requested else 0)
         self.char_system_remaining.set_value(max(0, total_remaining))
-        self.char_automatic.set_value(bool(self.coordinator.automatic_enabled))
+        self.char_automatic.set_value(
+            bool(getattr(self.coordinator, "automatic_enabled", True))
+        )
 
     def _set_system_active(self, value: int | bool) -> None:
         # System OFF = stop everything and clear queue.
