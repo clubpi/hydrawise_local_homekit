@@ -235,9 +235,14 @@ class IrrigationSystemAccessory(Accessory):
                 if requested:
                     # HomeKit can send SetDuration and Active in the same batch;
                     # give a just-in-flight SetDuration write time to land first.
-                    await asyncio.sleep(0.3)
+                    await asyncio.sleep(2)
                     duration = int(chars["duration"].value)
                     self.coordinator.duration_seconds[relay] = duration
+                    _LOGGER.warning(
+                        "HomeKit startet Zone %s mit SetDuration=%s Sekunden",
+                        relay,
+                        duration,
+                    )
                     await self.coordinator.async_start(relay, duration=duration)
                 else:
                     # If merely queued, cancel request rather than stopping current zone.
@@ -268,6 +273,11 @@ class IrrigationSystemAccessory(Accessory):
         seconds = max(60, min(10800, int(value)))
         self.coordinator.duration_seconds[relay] = seconds
         self.zone_chars[relay]["duration"].set_value(seconds)
+        _LOGGER.warning(
+            "HomeKit SetDuration für Zone %s empfangen: %s Sekunden",
+            relay,
+            seconds,
+        )
 
         if hasattr(self.coordinator, "async_update_listeners"):
             self.hass.loop.call_soon_threadsafe(
