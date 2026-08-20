@@ -24,10 +24,11 @@ class IrrigationSystemAccessory(Accessory):
 
     category = CATEGORY_SPRINKLER
 
-    def __init__(self, driver, hass: HomeAssistant, coordinator):
+    def __init__(self, driver, hass: HomeAssistant, coordinator, entry: ConfigEntry):
         super().__init__(driver, "Hydrawise Bewässerungssystem")
         self.hass = hass
         self.coordinator = coordinator
+        self.entry = entry
 
         self.set_info_service(
             manufacturer="clubpi",
@@ -322,6 +323,7 @@ class HydrawiseHomeKitSystemBridge:
             self.driver,
             self.hass,
             coordinator,
+            self.entry,
         )
 
         await self.hass.async_add_executor_job(self.driver.add_accessory, accessory)
