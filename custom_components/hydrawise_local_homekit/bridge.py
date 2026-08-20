@@ -73,6 +73,7 @@ class IrrigationSystemAccessory(Accessory):
             valve = self.add_preload_service(
                 "Valve",
                 chars=[
+                    "Name",
                     "SetDuration",
                     "RemainingDuration",
                     "ServiceLabelIndex",
@@ -81,6 +82,7 @@ class IrrigationSystemAccessory(Accessory):
                 ],
                 unique_id=f"hydrawise-zone-{relay}",
             )
+            valve.configure_char("Name", value=zone.name)
             valve.configure_char("ConfiguredName", value=zone.name)
             valve.configure_char("ValveType", value=1)  # Irrigation
             valve.configure_char("ServiceLabelIndex", value=index)
@@ -373,7 +375,7 @@ class HydrawiseHomeKitSystemBridge:
 
         persist_file = str(
             Path(self.hass.config.path(".storage"))
-            / f"hydrawise_local_homekit_{self.entry.entry_id}_bridge_v2.state"
+            / f"hydrawise_local_homekit_{self.entry.entry_id}_bridge_v3.state"
         )
         pin = self.entry.data[CONF_PIN].encode()
 
