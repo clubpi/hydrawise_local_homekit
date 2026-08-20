@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from functools import partial
 import logging
@@ -232,6 +233,9 @@ class IrrigationSystemAccessory(Accessory):
         async def _apply():
             try:
                 if requested:
+                    # HomeKit can send SetDuration and Active in the same batch;
+                    # give a just-in-flight SetDuration write time to land first.
+                    await asyncio.sleep(0.3)
                     await self.coordinator.async_start(relay)
                 else:
                     # If merely queued, cancel request rather than stopping current zone.
