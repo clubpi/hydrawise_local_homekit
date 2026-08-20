@@ -1,4 +1,4 @@
-# Hydrawise HomeKit System 0.2.0
+# Hydrawise Local HomeKit
 
 Parallel-Testintegration für `hydrawise_local_pro`.
 
@@ -26,8 +26,8 @@ Die Gesamtanlage meldet `InUse=1`, wenn irgendeine Zone tatsächlich läuft.
 
 ## Installation
 
-Ordner `custom_components/hydrawise_homekit_system` nach `/config/custom_components/` kopieren,
-Home Assistant neu starten und danach `Hydrawise HomeKit System` als Integration hinzufügen.
+Ordner `custom_components/hydrawise_local_homekit` nach `/config/custom_components/` kopieren,
+Home Assistant neu starten und danach `Hydrawise Local HomeKit` als Integration hinzufügen.
 
 Standardport: 21065
 

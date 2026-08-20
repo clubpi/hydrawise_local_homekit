@@ -1,4 +1,4 @@
-DOMAIN = "hydrawise_homekit_system"
+DOMAIN = "hydrawise_local_homekit"
 CONF_SOURCE_ENTRY = "source_entry"
 CONF_PORT = "port"
 CONF_PIN = "pin"

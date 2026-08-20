@@ -2,13 +2,13 @@
   "config": {
     "step": {
       "user": {
-        "title": "Hydrawise HomeKit System",
+        "title": "Hydrawise Local HomeKit",
         "description": "Separate Test-Brücke: ein echtes HomeKit Irrigation System mit verknüpften Hydrawise-Zonen.",
         "data": {
           "source_entry": "Hydrawise Local Pro Controller",
           "port": "HomeKit Port",
-            "pin": "HomeKit PIN",
-            "relays": "Zonen"
+          "pin": "HomeKit PIN",
+          "relays": "Zonen"
         }
       }
     },
