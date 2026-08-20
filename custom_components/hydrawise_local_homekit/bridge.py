@@ -73,7 +73,6 @@ class IrrigationSystemAccessory(Accessory):
             valve = self.add_preload_service(
                 "Valve",
                 chars=[
-                    "Name",
                     "SetDuration",
                     "RemainingDuration",
                     "ServiceLabelIndex",
@@ -82,7 +81,6 @@ class IrrigationSystemAccessory(Accessory):
                 ],
                 unique_id=f"hydrawise-zone-{relay}",
             )
-            valve.configure_char("Name", value=zone.name)
             valve.configure_char("ConfiguredName", value=zone.name)
             valve.configure_char("ValveType", value=1)  # Irrigation
             valve.configure_char("ServiceLabelIndex", value=index)
@@ -375,7 +373,7 @@ class HydrawiseHomeKitSystemBridge:
 
         persist_file = str(
             Path(self.hass.config.path(".storage"))
-            / f"hydrawise_local_homekit_{self.entry.entry_id}_bridge_v3.state"
+            / f"hydrawise_local_homekit_{self.entry.entry_id}_bridge_v4.state"
         )
         pin = self.entry.data[CONF_PIN].encode()
 
@@ -398,13 +396,7 @@ class HydrawiseHomeKitSystemBridge:
             coordinator,
             self.entry,
         )
-        automation = AutomationAccessory(self.driver, self.hass, coordinator)
-        homekit_bridge = Bridge(self.driver, "Hydrawise Local HomeKit")
-        homekit_bridge.add_accessory(irrigation)
-        homekit_bridge.add_accessory(automation)
-        await self.hass.async_add_executor_job(
-            self.driver.add_accessory, homekit_bridge
-        )
+        await self.hass.async_add_executor_job(self.driver.add_accessory, irrigation)
         await self.driver.async_start()
 
         _LOGGER.warning(
