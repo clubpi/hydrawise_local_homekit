@@ -56,6 +56,12 @@ class IrrigationSystemAccessory(Accessory):
         self.char_system_fault = system.configure_char("StatusFault", value=0)
         self.set_primary_service(system)
         self.system_service = system
+        automatic = self.add_preload_service("Switch", unique_id="hydrawise-automatic")
+        self.char_automatic = automatic.configure_char(
+            "On",
+            value=bool(coordinator.automatic_enabled),
+            setter_callback=self._set_automatic,
+        )
 
         self.zone_services = {}
         self.zone_chars = {}
@@ -125,6 +131,15 @@ class IrrigationSystemAccessory(Accessory):
         self._remove_listener = coordinator.async_add_listener(self._sync_from_coordinator)
         self._sync_from_coordinator()
 
+    def _set_automatic(self, value: int | bool) -> None:
+        enabled = bool(value)
+        self.char_automatic.set_value(enabled)
+        self.hass.loop.call_soon_threadsafe(
+            lambda: self.hass.async_create_task(
+                self.coordinator.async_set_automatic(enabled)
+            )
+        )
+
     def _zone_state(self, relay: int) -> tuple[int, int]:
         zone = self.coordinator.data.get(relay)
         if zone is None:
@@ -172,6 +187,7 @@ class IrrigationSystemAccessory(Accessory):
         self.char_system_in_use.set_value(1 if any_in_use else 0)
         self.char_system_program.set_value(1 if any_requested else 0)
         self.char_system_remaining.set_value(max(0, total_remaining))
+        self.char_automatic.set_value(bool(self.coordinator.automatic_enabled))
 
     def _set_system_active(self, value: int | bool) -> None:
         # System OFF = stop everything and clear queue.
