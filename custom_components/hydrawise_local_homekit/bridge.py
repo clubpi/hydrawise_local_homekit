@@ -5,7 +5,7 @@ from functools import partial
 import logging
 from pathlib import Path
 
-from pyhap.accessory import Accessory
+from pyhap.accessory import Accessory, Bridge
 from pyhap.accessory_driver import AccessoryDriver
 from pyhap.const import CATEGORY_SPRINKLER
 
@@ -374,16 +374,19 @@ class HydrawiseHomeKitSystemBridge:
             )
         )
 
-        accessory = IrrigationSystemAccessory(
+        irrigation = IrrigationSystemAccessory(
             self.driver,
             self.hass,
             coordinator,
             self.entry,
         )
-
-        await self.hass.async_add_executor_job(self.driver.add_accessory, accessory)
         automation = AutomationAccessory(self.driver, self.hass, coordinator)
-        await self.hass.async_add_executor_job(self.driver.add_accessory, automation)
+        homekit_bridge = Bridge(self.driver, "Hydrawise Local HomeKit")
+        homekit_bridge.add_accessory(irrigation)
+        homekit_bridge.add_accessory(automation)
+        await self.hass.async_add_executor_job(
+            self.driver.add_accessory, homekit_bridge
+        )
         await self.driver.async_start()
 
         _LOGGER.warning(
