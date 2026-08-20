@@ -1,12 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
 from functools import partial
 import logging
 from pathlib import Path
 
-from pyhap.accessory import Accessory, Bridge
+from pyhap.accessory import Accessory
 from pyhap.accessory_driver import AccessoryDriver
 from pyhap.const import CATEGORY_SPRINKLER
 
@@ -15,7 +14,7 @@ from homeassistant.components import zeroconf
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
-from .const import CONF_PIN, CONF_PORT, CONF_RELAYS, CONF_SOURCE_ENTRY
+from .const import CONF_PIN, CONF_PORT, CONF_SOURCE_ENTRY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,15 +24,14 @@ class IrrigationSystemAccessory(Accessory):
 
     category = CATEGORY_SPRINKLER
 
-    def __init__(self, driver, hass: HomeAssistant, coordinator, entry: ConfigEntry):
-        super().__init__(driver, "Hydrawise Bewässerungssystem")
+    def __init__(self, driver, hass: HomeAssistant, coordinator):
+        super().__init__(driver, "Hydrawise BewÃ¤sserungssystem")
         self.hass = hass
         self.coordinator = coordinator
-        self.entry = entry
 
         self.set_info_service(
             manufacturer="clubpi",
-            model="Hydrawise HomeKit System",
+            model="Hydrawise Local HomeKit",
             serial_number=f"{coordinator.api.host}-irrigation",
         )
 
@@ -57,18 +55,11 @@ class IrrigationSystemAccessory(Accessory):
         self.char_system_fault = system.configure_char("StatusFault", value=0)
         self.set_primary_service(system)
         self.system_service = system
+
         self.zone_services = {}
         self.zone_chars = {}
 
-        selected_relays = self.entry.options.get(
-            CONF_RELAYS,
-            self.entry.data.get(CONF_RELAYS, [str(relay) for relay in coordinator.data]),
-        )
-        selected_relays = {int(relay) for relay in selected_relays}
-        for index, relay in enumerate(
-            sorted(relay for relay in coordinator.data if relay in selected_relays),
-            start=1,
-        ):
+        for index, relay in enumerate(sorted(coordinator.data), start=1):
             zone = coordinator.data[relay]
             valve = self.add_preload_service(
                 "Valve",
@@ -124,18 +115,6 @@ class IrrigationSystemAccessory(Accessory):
 
         self._remove_listener = coordinator.async_add_listener(self._sync_from_coordinator)
         self._sync_from_coordinator()
-
-    def _set_automatic(self, value: int | bool) -> None:
-        enabled = bool(value)
-        self.char_automatic.set_value(enabled)
-        if not hasattr(self.coordinator, "async_set_automatic"):
-            _LOGGER.warning("Hydrawise Local Pro ohne Automatik-Schalter geladen")
-            return
-        self.hass.loop.call_soon_threadsafe(
-            lambda: self.hass.async_create_task(
-                self.coordinator.async_set_automatic(enabled)
-            )
-        )
 
     def _zone_state(self, relay: int) -> tuple[int, int]:
         zone = self.coordinator.data.get(relay)
@@ -211,7 +190,7 @@ class IrrigationSystemAccessory(Accessory):
 
                 self._sync_from_coordinator()
             except Exception:
-                _LOGGER.exception("Fehler beim Stoppen des Bewässerungssystems")
+                _LOGGER.exception("Fehler beim Stoppen des BewÃ¤sserungssystems")
 
         self.hass.loop.call_soon_threadsafe(
             lambda: self.hass.async_create_task(_stop_all())
@@ -233,17 +212,7 @@ class IrrigationSystemAccessory(Accessory):
         async def _apply():
             try:
                 if requested:
-                    # HomeKit can send SetDuration and Active in the same batch;
-                    # give a just-in-flight SetDuration write time to land first.
-                    await asyncio.sleep(2)
-                    duration = int(chars["duration"].value)
-                    self.coordinator.duration_seconds[relay] = duration
-                    _LOGGER.warning(
-                        "HomeKit startet Zone %s mit SetDuration=%s Sekunden",
-                        relay,
-                        duration,
-                    )
-                    await self.coordinator.async_start(relay, duration=duration)
+                    await self.coordinator.async_start(relay)
                 else:
                     # If merely queued, cancel request rather than stopping current zone.
                     pending = getattr(self.coordinator, "pending_relays", None)
@@ -259,7 +228,7 @@ class IrrigationSystemAccessory(Accessory):
             except Exception:
                 _LOGGER.exception(
                     "Fehler beim %s von Hydrawise-Zone %s",
-                    "Anfordern" if requested else "Abwählen",
+                    "Anfordern" if requested else "AbwÃ¤hlen",
                     relay,
                 )
             finally:
@@ -273,11 +242,6 @@ class IrrigationSystemAccessory(Accessory):
         seconds = max(60, min(10800, int(value)))
         self.coordinator.duration_seconds[relay] = seconds
         self.zone_chars[relay]["duration"].set_value(seconds)
-        _LOGGER.warning(
-            "HomeKit SetDuration für Zone %s empfangen: %s Sekunden",
-            relay,
-            seconds,
-        )
 
         if hasattr(self.coordinator, "async_update_listeners"):
             self.hass.loop.call_soon_threadsafe(
@@ -311,50 +275,6 @@ class IrrigationSystemAccessory(Accessory):
         await super().stop()
 
 
-class AutomationAccessory(Accessory):
-    """Separate HomeKit tile for the irrigation automation lock."""
-
-    def __init__(self, driver, hass: HomeAssistant, coordinator):
-        super().__init__(driver, "Bewässerungsautomatik")
-        self.hass = hass
-        self.coordinator = coordinator
-        self.set_info_service(
-            manufacturer="clubpi",
-            model="Hydrawise Local HomeKit",
-            serial_number=f"{coordinator.api.host}-automation",
-        )
-        switch = self.add_preload_service("Switch", unique_id="hydrawise-automatic")
-        self.char_automatic = switch.configure_char(
-            "On",
-            value=bool(getattr(coordinator, "automatic_enabled", True)),
-            setter_callback=self._set_automatic,
-        )
-        self._remove_listener = coordinator.async_add_listener(self._sync)
-        self._sync()
-
-    def _set_automatic(self, value: int | bool) -> None:
-        enabled = bool(value)
-        self.char_automatic.set_value(enabled)
-        if hasattr(self.coordinator, "async_set_automatic"):
-            self.hass.loop.call_soon_threadsafe(
-                lambda: self.hass.async_create_task(
-                    self.coordinator.async_set_automatic(enabled)
-                )
-            )
-
-    @callback
-    def _sync(self) -> None:
-        self.char_automatic.set_value(
-            bool(getattr(self.coordinator, "automatic_enabled", True))
-        )
-
-    async def stop(self) -> None:
-        if self._remove_listener:
-            self._remove_listener()
-            self._remove_listener = None
-        await super().stop()
-
-
 class HydrawiseHomeKitSystemBridge:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
@@ -373,7 +293,7 @@ class HydrawiseHomeKitSystemBridge:
 
         persist_file = str(
             Path(self.hass.config.path(".storage"))
-            / f"hydrawise_local_homekit_{self.entry.entry_id}_bridge_v4.state"
+            / f"hydrawise_local_homekit_{self.entry.entry_id}.state"
         )
         pin = self.entry.data[CONF_PIN].encode()
 
@@ -390,17 +310,17 @@ class HydrawiseHomeKitSystemBridge:
             )
         )
 
-        irrigation = IrrigationSystemAccessory(
+        accessory = IrrigationSystemAccessory(
             self.driver,
             self.hass,
             coordinator,
-            self.entry,
         )
-        await self.hass.async_add_executor_job(self.driver.add_accessory, irrigation)
+
+        await self.hass.async_add_executor_job(self.driver.add_accessory, accessory)
         await self.driver.async_start()
 
         _LOGGER.warning(
-            "Hydrawise HomeKit System gestartet auf Port %s; PIN %s",
+            "Hydrawise Local HomeKit gestartet auf Port %s; PIN %s",
             self.entry.data[CONF_PORT],
             self.entry.data[CONF_PIN],
         )
@@ -409,3 +329,4 @@ class HydrawiseHomeKitSystemBridge:
         if self.driver is not None:
             await self.driver.async_stop()
             self.driver = None
+
