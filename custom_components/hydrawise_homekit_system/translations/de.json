@@ -7,7 +7,8 @@
         "data": {
           "source_entry": "Hydrawise Local Pro Controller",
           "port": "HomeKit Port",
-          "pin": "HomeKit PIN"
+          "pin": "HomeKit PIN",
+          "relays": "Zonen"
         }
       }
     },

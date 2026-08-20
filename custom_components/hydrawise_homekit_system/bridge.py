@@ -14,7 +14,7 @@ from homeassistant.components import zeroconf
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
-from .const import CONF_PIN, CONF_PORT, CONF_SOURCE_ENTRY
+from .const import CONF_PIN, CONF_PORT, CONF_RELAYS, CONF_SOURCE_ENTRY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,7 +59,15 @@ class IrrigationSystemAccessory(Accessory):
         self.zone_services = {}
         self.zone_chars = {}
 
-        for index, relay in enumerate(sorted(coordinator.data), start=1):
+        selected_relays = self.entry.options.get(
+            CONF_RELAYS,
+            self.entry.data.get(CONF_RELAYS, [str(relay) for relay in coordinator.data]),
+        )
+        selected_relays = {int(relay) for relay in selected_relays}
+        for index, relay in enumerate(
+            sorted(relay for relay in coordinator.data if relay in selected_relays),
+            start=1,
+        ):
             zone = coordinator.data[relay]
             valve = self.add_preload_service(
                 "Valve",
