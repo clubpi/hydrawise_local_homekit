@@ -236,7 +236,9 @@ class IrrigationSystemAccessory(Accessory):
                     # HomeKit can send SetDuration and Active in the same batch;
                     # give a just-in-flight SetDuration write time to land first.
                     await asyncio.sleep(0.3)
-                    await self.coordinator.async_start(relay)
+                    duration = int(chars["duration"].value)
+                    self.coordinator.duration_seconds[relay] = duration
+                    await self.coordinator.async_start(relay, duration=duration)
                 else:
                     # If merely queued, cancel request rather than stopping current zone.
                     pending = getattr(self.coordinator, "pending_relays", None)
