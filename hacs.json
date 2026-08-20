@@ -1,5 +1,5 @@
 {
-  "name": "Hydrawise HomeKit System",
+  "name": "Hydrawise Local HomeKit",
   "render_readme": true,
   "homeassistant": "2026.8.0"
 }
