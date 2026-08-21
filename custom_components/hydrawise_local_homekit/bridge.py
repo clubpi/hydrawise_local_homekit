@@ -247,8 +247,13 @@ class IrrigationSystemAccessory(Accessory):
 
     def _set_zone_duration(self, relay: int, value: int) -> None:
         seconds = max(60, min(10800, int(value)))
+        self.zone_chars[relay]["duration"].set_value(seconds)
+
         async def _apply_duration():
             await self.coordinator.async_set_duration(relay, seconds)
+            self.zone_chars[relay]["duration"].set_value(
+                self.coordinator.get_duration(relay)
+            )
             self._sync_from_coordinator()
 
         self.hass.loop.call_soon_threadsafe(
