@@ -64,6 +64,7 @@ class IrrigationSystemAccessory(Accessory):
             valve = self.add_preload_service(
                 "Valve",
                 chars=[
+                    "Name",
                     "SetDuration",
                     "RemainingDuration",
                     "ServiceLabelIndex",
@@ -72,6 +73,7 @@ class IrrigationSystemAccessory(Accessory):
                 ],
                 unique_id=f"hydrawise-zone-{relay}",
             )
+            valve.configure_char("Name", value=zone.name)
             valve.configure_char("ConfiguredName", value=zone.name)
             valve.configure_char("ValveType", value=1)  # Irrigation
             valve.configure_char("ServiceLabelIndex", value=index)
