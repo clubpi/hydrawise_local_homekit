@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from functools import partial
+import asyncio
 import logging
 from pathlib import Path
 
@@ -214,7 +215,10 @@ class IrrigationSystemAccessory(Accessory):
         async def _apply():
             try:
                 if requested:
-                    await self.coordinator.async_start(relay)
+                    await asyncio.sleep(0.5)
+                    duration = int(chars["duration"].value)
+                    self.coordinator.duration_seconds[relay] = duration
+                    await self.coordinator.async_start(relay, duration=duration)
                 else:
                     # If merely queued, cancel request rather than stopping current zone.
                     pending = getattr(self.coordinator, "pending_relays", None)
