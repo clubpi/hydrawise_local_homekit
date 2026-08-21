@@ -59,10 +59,6 @@ class IrrigationSystemAccessory(Accessory):
 
         self.zone_services = {}
         self.zone_chars = {}
-        self.homekit_durations = {
-            relay: int(coordinator.duration_seconds.get(relay, 300))
-            for relay in coordinator.data
-        }
 
         for index, relay in enumerate(sorted(coordinator.data), start=1):
             zone = coordinator.data[relay]
@@ -91,7 +87,7 @@ class IrrigationSystemAccessory(Accessory):
             )
             in_use = valve.configure_char("InUse", value=0)
 
-            duration = int(coordinator.duration_seconds.get(relay, 300))
+            duration = coordinator.get_duration(relay)
             set_duration = valve.configure_char(
                 "SetDuration",
                 value=duration,
@@ -147,9 +143,7 @@ class IrrigationSystemAccessory(Accessory):
             chars["active"].set_value(active)
             chars["in_use"].set_value(in_use)
 
-            duration = self.homekit_durations.get(
-                relay, int(self.coordinator.duration_seconds.get(relay, 300))
-            )
+            duration = self.coordinator.get_duration(relay)
             chars["duration"].set_value(duration)
 
             remaining = self._get_zone_remaining(relay)
@@ -222,9 +216,7 @@ class IrrigationSystemAccessory(Accessory):
             try:
                 if requested:
                     await asyncio.sleep(0.5)
-                    duration = int(self.homekit_durations.get(relay, 300))
-                    self.coordinator.duration_seconds[relay] = duration
-                    await self.coordinator.async_start(relay, duration=duration)
+                    await self.coordinator.async_start(relay)
                 else:
                     # If merely queued, cancel request rather than stopping current zone.
                     pending = getattr(self.coordinator, "pending_relays", None)
@@ -252,14 +244,13 @@ class IrrigationSystemAccessory(Accessory):
 
     def _set_zone_duration(self, relay: int, value: int) -> None:
         seconds = max(60, min(10800, int(value)))
-        self.homekit_durations[relay] = seconds
-        self.coordinator.duration_seconds[relay] = seconds
-        self.zone_chars[relay]["duration"].set_value(seconds)
+        async def _apply_duration():
+            await self.coordinator.async_set_duration(relay, seconds)
+            self._sync_from_coordinator()
 
-        if hasattr(self.coordinator, "async_update_listeners"):
-            self.hass.loop.call_soon_threadsafe(
-                self.coordinator.async_update_listeners
-            )
+        self.hass.loop.call_soon_threadsafe(
+            lambda: self.hass.async_create_task(_apply_duration())
+        )
 
     def _get_zone_remaining(self, relay: int) -> int:
         zone = self.coordinator.data.get(relay)
