@@ -160,7 +160,7 @@ class IrrigationSystemAccessory(Accessory):
         for relay in pending:
             zone = self.coordinator.data.get(relay)
             if zone and not zone.is_running:
-                total_remaining += int(self.coordinator.duration_seconds.get(relay, 300))
+                total_remaining += self.coordinator.get_duration(relay)
 
         self.char_system_active.set_value(1 if any_requested else 0)
         self.char_system_in_use.set_value(1 if any_in_use else 0)
@@ -208,7 +208,10 @@ class IrrigationSystemAccessory(Accessory):
         if requested:
             chars["active"].set_value(1)
             zone = self.coordinator.data.get(relay)
-            chars["in_use"].set_value(1 if zone and zone.is_running else 0)
+            running = bool(zone and zone.is_running)
+            chars["in_use"].set_value(1 if running else 0)
+            if not running:
+                chars["remaining"].set_value(self.coordinator.get_duration(relay))
         else:
             chars["active"].set_value(0)
 
@@ -268,7 +271,7 @@ class IrrigationSystemAccessory(Accessory):
                 )
 
         if relay in getattr(self.coordinator, "pending_relays", []):
-            return int(self.coordinator.duration_seconds.get(relay, 300))
+            return self.coordinator.get_duration(relay)
 
         return 0
 
