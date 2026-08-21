@@ -59,6 +59,10 @@ class IrrigationSystemAccessory(Accessory):
 
         self.zone_services = {}
         self.zone_chars = {}
+        self.homekit_durations = {
+            relay: int(coordinator.duration_seconds.get(relay, 300))
+            for relay in coordinator.data
+        }
 
         for index, relay in enumerate(sorted(coordinator.data), start=1):
             zone = coordinator.data[relay]
@@ -143,7 +147,9 @@ class IrrigationSystemAccessory(Accessory):
             chars["active"].set_value(active)
             chars["in_use"].set_value(in_use)
 
-            duration = int(self.coordinator.duration_seconds.get(relay, 300))
+            duration = self.homekit_durations.get(
+                relay, int(self.coordinator.duration_seconds.get(relay, 300))
+            )
             chars["duration"].set_value(duration)
 
             remaining = self._get_zone_remaining(relay)
@@ -216,7 +222,7 @@ class IrrigationSystemAccessory(Accessory):
             try:
                 if requested:
                     await asyncio.sleep(0.5)
-                    duration = int(chars["duration"].value)
+                    duration = int(self.homekit_durations.get(relay, 300))
                     self.coordinator.duration_seconds[relay] = duration
                     await self.coordinator.async_start(relay, duration=duration)
                 else:
@@ -246,6 +252,7 @@ class IrrigationSystemAccessory(Accessory):
 
     def _set_zone_duration(self, relay: int, value: int) -> None:
         seconds = max(60, min(10800, int(value)))
+        self.homekit_durations[relay] = seconds
         self.coordinator.duration_seconds[relay] = seconds
         self.zone_chars[relay]["duration"].set_value(seconds)
 
