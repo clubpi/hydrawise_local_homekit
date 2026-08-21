@@ -299,7 +299,7 @@ class HydrawiseHomeKitSystemBridge:
 
         persist_file = str(
             Path(self.hass.config.path(".storage"))
-            / f"hydrawise_local_homekit_{self.entry.entry_id}.state"
+            / f"hydrawise_local_homekit_{self.entry.entry_id}_v2.state"
         )
         pin = self.entry.data[CONF_PIN].encode()
 
