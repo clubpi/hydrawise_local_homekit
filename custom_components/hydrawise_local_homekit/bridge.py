@@ -33,7 +33,7 @@ class IrrigationSystemAccessory(Accessory):
         self.set_info_service(
             manufacturer="clubpi",
             model="Hydrawise Local HomeKit",
-            serial_number=f"{coordinator.api.host}-irrigation",
+            serial_number=f"{coordinator.api.host}-irrigation-v3",
         )
 
         # Apple HomeKit ADK explicitly models a sprinkler controller as one
@@ -299,7 +299,7 @@ class HydrawiseHomeKitSystemBridge:
 
         persist_file = str(
             Path(self.hass.config.path(".storage"))
-            / f"hydrawise_local_homekit_{self.entry.entry_id}_v2.state"
+            / f"hydrawise_local_homekit_{self.entry.entry_id}_v3.state"
         )
         pin = self.entry.data[CONF_PIN].encode()
 
