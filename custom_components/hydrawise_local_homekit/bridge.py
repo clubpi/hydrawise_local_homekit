@@ -323,6 +323,17 @@ class HydrawiseHomeKitSystemBridge:
         )
 
         await self.hass.async_add_executor_job(self.driver.add_accessory, accessory)
+        _LOGGER.warning(
+            "HomeKit-Zonen veröffentlicht: %s",
+            {
+                relay: {
+                    char.display_name: char.value
+                    for char in service.characteristics
+                    if char.display_name in {"Name", "ConfiguredName", "SetDuration"}
+                }
+                for relay, service in accessory.zone_services.items()
+            },
+        )
         await self.driver.async_start()
 
         _LOGGER.warning(
