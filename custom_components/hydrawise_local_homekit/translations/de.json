@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Hydrawise Local HomeKit",
-        "description": "Separate Test-BrÃ¼cke: ein echtes HomeKit Irrigation System mit verknÃ¼pften Hydrawise-Zonen.",
+        "description": "Separate Brücke: ein echtes HomeKit-Bewässerungssystem mit verknüpften Hydrawise-Zonen.",
         "data": {
           "source_entry": "Hydrawise Local Pro Controller",
           "port": "HomeKit Port",
@@ -17,7 +17,7 @@
     },
     "abort": {
       "no_local_pro": "Hydrawise Local Pro ist nicht eingerichtet",
-      "already_configured": "FÃ¼r diesen Controller existiert bereits eine HomeKit-System-BrÃ¼cke"
+      "already_configured": "Für diesen Controller existiert bereits eine HomeKit-System-Brücke"
     }
   }
 }

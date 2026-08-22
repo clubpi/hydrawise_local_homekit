@@ -1,9 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import re
 from typing import Any
-import voluptuous as vol
 
+import voluptuous as vol
 from homeassistant import config_entries
 
 from .const import CONF_PIN, CONF_PORT, CONF_SOURCE_ENTRY, DEFAULT_PORT, DOMAIN
@@ -20,7 +20,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not source_entries:
             return self.async_abort(reason="no_local_pro")
 
-        choices = {entry.entry_id: entry.title or entry.entry_id for entry in source_entries}
+        choices = {
+            entry.entry_id: entry.title or entry.entry_id for entry in source_entries
+        }
 
         if user_input is not None:
             if not PIN_RE.match(user_input[CONF_PIN]):
@@ -47,9 +49,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_PORT, default=DEFAULT_PORT): vol.All(
                         vol.Coerce(int), vol.Range(min=1024, max=65535)
                     ),
-                    vol.Required(CONF_PIN, default="731-26-420"): str,
+                    vol.Required(CONF_PIN): str,
                 }
             ),
             errors=errors,
         )
-

@@ -1,19 +1,17 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-from datetime import datetime, timezone
-from functools import partial
 import asyncio
 import logging
+from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 
-from pyhap.accessory import Accessory
-from pyhap.accessory_driver import AccessoryDriver
-from pyhap.const import CATEGORY_SPRINKLER
-
-from homeassistant import components
 from homeassistant.components import zeroconf
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from pyhap.accessory import Accessory
+from pyhap.accessory_driver import AccessoryDriver
+from pyhap.const import CATEGORY_SPRINKLER
 
 from .const import CONF_PIN, CONF_PORT, CONF_SOURCE_ENTRY
 
@@ -26,7 +24,7 @@ class IrrigationSystemAccessory(Accessory):
     category = CATEGORY_SPRINKLER
 
     def __init__(self, driver, hass: HomeAssistant, coordinator):
-        super().__init__(driver, "Hydrawise BewÃ¤sserungssystem")
+        super().__init__(driver, "Hydrawise Bewässerungssystem")
         self.hass = hass
         self.coordinator = coordinator
 
@@ -116,7 +114,9 @@ class IrrigationSystemAccessory(Accessory):
                 "remaining": remaining,
             }
 
-        self._remove_listener = coordinator.async_add_listener(self._sync_from_coordinator)
+        self._remove_listener = coordinator.async_add_listener(
+            self._handle_coordinator_update
+        )
         self._sync_from_coordinator()
 
     def _zone_state(self, relay: int) -> tuple[int, int]:
@@ -129,6 +129,15 @@ class IrrigationSystemAccessory(Accessory):
             # Selected / queued, but not physically watering yet.
             return 1, 0
         return 0, 0
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        try:
+            self._sync_from_coordinator()
+        except Exception:
+            _LOGGER.exception(
+                "Fehler beim Synchronisieren des Hydrawise-Status mit HomeKit"
+            )
 
     @callback
     def _sync_from_coordinator(self) -> None:
@@ -176,7 +185,6 @@ class IrrigationSystemAccessory(Accessory):
 
         async def _stop_all():
             try:
-                pending = list(getattr(self.coordinator, "pending_relays", []))
                 if hasattr(self.coordinator, "pending_relays"):
                     self.coordinator.pending_relays.clear()
 
@@ -184,16 +192,9 @@ class IrrigationSystemAccessory(Accessory):
                     if zone.is_running:
                         await self.coordinator.async_stop(relay)
 
-                # If coordinator keeps queued commands elsewhere, try known queue attr.
-                if hasattr(self.coordinator, "queue"):
-                    try:
-                        self.coordinator.queue.clear()
-                    except Exception:
-                        pass
-
                 self._sync_from_coordinator()
             except Exception:
-                _LOGGER.exception("Fehler beim Stoppen des BewÃ¤sserungssystems")
+                _LOGGER.exception("Fehler beim Stoppen des Bewässerungssystems")
 
         self.hass.loop.call_soon_threadsafe(
             lambda: self.hass.async_create_task(_stop_all())
@@ -235,7 +236,7 @@ class IrrigationSystemAccessory(Accessory):
             except Exception:
                 _LOGGER.exception(
                     "Fehler beim %s von Hydrawise-Zone %s",
-                    "Anfordern" if requested else "AbwÃ¤hlen",
+                    "Anfordern" if requested else "Abwählen",
                     relay,
                 )
             finally:
@@ -329,7 +330,7 @@ class HydrawiseHomeKitSystemBridge:
         )
 
         await self.hass.async_add_executor_job(self.driver.add_accessory, accessory)
-        _LOGGER.warning(
+        _LOGGER.debug(
             "HomeKit-Zonen veröffentlicht: %s",
             {
                 relay: {
@@ -342,14 +343,12 @@ class HydrawiseHomeKitSystemBridge:
         )
         await self.driver.async_start()
 
-        _LOGGER.warning(
-            "Hydrawise Local HomeKit gestartet auf Port %s; PIN %s",
+        _LOGGER.info(
+            "Hydrawise Local HomeKit gestartet auf Port %s",
             self.entry.data[CONF_PORT],
-            self.entry.data[CONF_PIN],
         )
 
     async def async_stop(self) -> None:
         if self.driver is not None:
             await self.driver.async_stop()
             self.driver = None
-
