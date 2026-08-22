@@ -19,5 +19,20 @@
       "no_local_pro": "Hydrawise Local Pro ist nicht eingerichtet",
       "already_configured": "Für diesen Controller existiert bereits eine HomeKit-System-Brücke"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "HomeKit-Einstellungen",
+        "description": "Änderungen starten die HomeKit-Brücke automatisch neu.",
+        "data": {
+          "port": "HomeKit Port",
+          "pin": "HomeKit PIN"
+        }
+      }
+    },
+    "error": {
+      "invalid_pin": "PIN muss das Format 123-45-678 haben"
+    }
   }
 }

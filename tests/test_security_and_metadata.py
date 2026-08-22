@@ -23,7 +23,14 @@ class SecurityAndMetadataTests(unittest.TestCase):
 
     def test_manifest_version_matches_release(self) -> None:
         manifest = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.3.0")
+        self.assertEqual(manifest["version"], "0.3.1")
+
+    def test_options_override_pin_and_are_redacted(self) -> None:
+        bridge = (ROOT / "bridge.py").read_text(encoding="utf-8")
+        diagnostics = (ROOT / "diagnostics.py").read_text(encoding="utf-8")
+
+        self.assertIn("{**self.entry.data, **self.entry.options}", bridge)
+        self.assertIn('"options": async_redact_data', diagnostics)
 
 
 if __name__ == "__main__":

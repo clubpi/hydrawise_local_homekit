@@ -295,6 +295,7 @@ class HydrawiseHomeKitSystemBridge:
         self.driver: AccessoryDriver | None = None
 
     async def async_start(self) -> None:
+        settings = {**self.entry.data, **self.entry.options}
         source_entry = self.hass.config_entries.async_get_entry(
             self.entry.data[CONF_SOURCE_ENTRY]
         )
@@ -308,14 +309,14 @@ class HydrawiseHomeKitSystemBridge:
             Path(self.hass.config.path(".storage"))
             / f"hydrawise_local_homekit_{self.entry.entry_id}_v3.state"
         )
-        pin = self.entry.data[CONF_PIN].encode()
+        pin = settings[CONF_PIN].encode()
 
         # HAP-python loads resource JSON during construction, so initialize it in
         # Home Assistant's executor instead of blocking the event loop.
         self.driver = await self.hass.async_add_executor_job(
             partial(
                 AccessoryDriver,
-                port=int(self.entry.data[CONF_PORT]),
+                port=int(settings[CONF_PORT]),
                 persist_file=persist_file,
                 pincode=bytearray(pin),
                 loop=self.hass.loop,
@@ -345,7 +346,7 @@ class HydrawiseHomeKitSystemBridge:
 
         _LOGGER.info(
             "Hydrawise Local HomeKit gestartet auf Port %s",
-            self.entry.data[CONF_PORT],
+            settings[CONF_PORT],
         )
 
     async def async_stop(self) -> None:

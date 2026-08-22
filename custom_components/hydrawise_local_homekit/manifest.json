@@ -1,7 +1,7 @@
 {
   "domain": "hydrawise_local_homekit",
   "name": "Hydrawise Local HomeKit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "documentation": "https://github.com/clubpi/hydrawise_local_homekit",
   "issue_tracker": "https://github.com/clubpi/hydrawise_local_homekit/issues",
   "codeowners": [],

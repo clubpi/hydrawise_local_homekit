@@ -15,5 +15,6 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     return {
         "config_entry": async_redact_data(dict(entry.data), TO_REDACT),
+        "options": async_redact_data(dict(entry.options), TO_REDACT),
         "bridge_running": entry.runtime_data.bridge.driver is not None,
     }
